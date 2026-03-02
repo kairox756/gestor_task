@@ -1,6 +1,6 @@
 {
-  "version": "1.0",
-  "build": "20260301",
+  "version": "1.0.1.0.GDTHXM",
+  "build": "20260100",
   "changelog": "Mejoras de rendimiento, corrección de errores y nueva barra lateral Metro.",
   "download_url": "https://github.com/kairox756/gestor_task/tareas.zip"
 }
