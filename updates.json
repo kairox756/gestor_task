@@ -1,6 +1,11 @@
 {
   "version": "1.0.1.0.GDTHXM",
   "build": "20260100",
-  "changelog": "Mejoras de rendimiento, corrección de errores y nueva barra lateral Metro.",
+  "changelog": "Validación de entradas (no tareas vacías ni fechas pasadas)", 
+                "Orden automático de tareas por prioridad y fecha", 
+                "Feedback visual tipo toast al agregar tareas", 
+                "Botones con texto y tooltips claros", 
+                "Comparación de versiones OTA más robusta con parseFloat", 
+                "Renderizado seguro con textContent en lugar de innerHTML",
   "download_url": "https://github.com/kairox756/gestor_task/tareas.zip"
 }
