@@ -1,5 +1,5 @@
 {
-  "version": "1.0.1.0.GDTHXM",
+  "version": "1.1",
   "build": "20260100",
   "changelog": "Validación de entradas (no tareas vacías ni fechas pasadas)", 
                 "Orden automático de tareas por prioridad y fecha", 
