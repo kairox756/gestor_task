@@ -1,6 +1,6 @@
 {
-  "version": "1.10.0.0",
-  "build": "20260378",
-  "changelog": "Pronto abran mas actualizaciones",
-  "download_url": "https://github.com/usuario/repositorio/releases/download/v1.1/gestor.zip"
+  "version": "1.1",
+  "build": "20260301",
+  "changelog": "Mejoras de rendimiento, corrección de errores y nueva barra lateral Metro.",
+  "download_url": "https://github.com/kairox756/gestor_task/releases/download/v1.1/gestor_task.zip"
 }
