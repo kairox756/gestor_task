@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Gestor de Tareas Metro Light</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: #f2f2f2;
+      margin: 0;
+      display: flex;
+    }
+    .sidebar {
+      width: 220px;
+      background: #0078d7;
+      color: #fff;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding-top: 20px;
+    }
+    .sidebar h2 { text-align: center; margin-bottom: 20px; }
+    .sidebar button {
+      background: none; border: none; color: #fff;
+      padding: 15px; text-align: left; cursor: pointer;
+      font-size: 15px; transition: background 0.3s;
+    }
+    .sidebar button:hover { background: rgba(255,255,255,0.2); }
+    .main { flex: 1; padding: 20px; }
+    .section { display: none; animation: fadeIn 0.4s ease; }
+    .section.active { display: block; }
+    @keyframes fadeIn { from {opacity:0; transform:translateY(10px);} to {opacity:1; transform:translateY(0);} }
+    input, select, textarea, button {
+      padding: 10px; border: none; border-radius: 4px;
+      font-size: 14px; margin: 5px 0;
+    }
+    input, select, textarea { background: #fff; border: 1px solid #ccc; width: 100%; }
+    textarea { resize: none; height: 60px; }
+    .task-actions button {
+      margin-right: 5px; background: #eee; color: #333; cursor: pointer;
+    }
+    .task-actions button:hover { background: #ddd; }
+    ul { list-style: none; padding: 0; }
+    li {
+      background: #fff; margin: 10px 0; padding: 10px;
+      border-radius: 4px; box-shadow: inset 0 0 3px rgba(0,0,0,0.1);
+      transition: background 0.3s;
+    }
+    .done { text-decoration: line-through; color: #888; }
+    .priority-alta { border-left: 5px solid #e81123; }
+    .priority-media { border-left: 5px solid #ff8c00; }
+    .priority-baja { border-left: 5px solid #107c10; }
+    #infoEntorno { color: #0078d7; font-weight: bold; margin-bottom: 10px; }
+    /* Toast feedback */
+    #toast {
+      visibility: hidden; min-width: 200px; background: #0078d7; color: #fff;
+      text-align: center; border-radius: 4px; padding: 10px;
+      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+      z-index: 1000; transition: visibility 0s, opacity 0.5s linear;
+      opacity: 0;
+    }
+    #toast.show { visibility: visible; opacity: 1; }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>Gestor</h2>
+    <button onclick="mostrarSeccion('tareas')">➕ Nueva Tarea</button>
+    <button onclick="mostrarSeccion('estadisticas')">📊 Estadísticas</button>
+    <button onclick="mostrarSeccion('lista')">📝 Lista</button>
+    <button onclick="mostrarSeccion('info')">ℹ️ Información</button>
+    <button onclick="mostrarSeccion('updates')">🔄 Actualizaciones</button>
+  </div>
+
+  <div class="main">
+    <p id="infoEntorno"></p>
+
+    <div id="tareas" class="section active">
+      <h2>➕ Nueva Tarea</h2>
+      <input type="text" id="taskInput" placeholder="Título de la tarea...">
+      <textarea id="taskDesc" placeholder="Descripción..."></textarea>
+      <input type="date" id="taskDate">
+      <select id="taskPriority">
+        <option value="alta">Alta</option>
+        <option value="media">Media</option>
+        <option value="baja">Baja</option>
+      </select>
+      <button id="addTaskBtn">Agregar</button>
+      <select id="filter">
+        <option value="todas">Todas</option>
+        <option value="pendientes">Pendientes</option>
+        <option value="completadas">Completadas</option>
+      </select>
+    </div>
+
+    <div id="estadisticas" class="section">
+      <h2>📊 Estadísticas</h2>
+      <p>Total: <span id="totalCount">0</span></p>
+      <p>Pendientes: <span id="pendingCount">0</span></p>
+      <p>Completadas: <span id="doneCount">0</span></p>
+    </div>
+
+    <div id="lista" class="section">
+      <h2>📝 Lista de Tareas</h2>
+      <ul id="taskList"></ul>
+    </div>
+
+    <div id="info" class="section">
+      <h2>ℹ️ Acerca del Gestor</h2>
+      <p>Este gestor de tareas está inspirado en la interfaz Metro de Windows 8.1.</p>
+      <h3>Información del Programa</h3>
+      <p><strong>Versión:</strong> v1.0</p>
+      <p><strong>Compilación:</strong> 20260301</p>
+      <p id="programInfo"></p>
+    </div>
+
+    <div id="updates" class="section">
+      <h2>🔄 Actualizaciones OTA</h2>
+      <div id="loader" class="loader" style="display:none;">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+      <p id="updateStatus">Buscando actualizaciones...</p>
+      <button onclick="buscarActualizaciones()">Buscar actualización</button>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <style>
+    /* Loader estilo Android/Metro */
+    .loader { display: flex; gap: 8px; justify-content: center; margin: 10px 0; }
+    .dot {
+      width: 12px; height: 12px; background: #0078d7; border-radius: 50%;
+      animation: bounce 1s infinite ease-in-out;
+    }
+    .dot:nth-child(1) { animation-delay: 0s; }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    .dot:nth-child(4) { animation-delay: 0.6s; }
+    .dot:nth-child(5) { animation-delay: 0.8s; }
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+      40% { transform: scale(1.2); opacity: 1; }
+    }
+  </style>
+
+  <script>
+    function mostrarSeccion(id) {
+      document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    const taskInput = document.getElementById("taskInput");
+    const taskDesc = document.getElementById("taskDesc");
+    const taskDate = document.getElementById("taskDate");
+    const taskPriority = document.getElementById("taskPriority");
+    const addTaskBtn = document.getElementById("addTaskBtn");
+    const taskList = document.getElementById("taskList");
+    const filter = document.getElementById("filter");
+    const totalCount = document.getElementById("totalCount");
+    const pendingCount = document.getElementById("pendingCount");
+    const doneCount = document.getElementById("doneCount");
+    const infoEntorno = document.getElementById("infoEntorno");
+    const updateStatus = document.getElementById("updateStatus");
+    const toast = document.getElementById("toast");
+
+    let tasks = JSON.parse(localStorage.getItem("gestor_tasks")) || [];
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.className = "show";
+      setTimeout(() => { 
+        toast.className = toast.className.replace("show", "");
+      }, 2000);
+    }
+
+    function addTask() {
+      const text = taskInput.value.trim();
+      const desc = taskDesc.value.trim();
+      const date = taskDate.value;
+
+      if (!text) {
+        showToast("⚠️ El título no puede estar vacío");
+        return;
+      }
+      if (date && new Date(date) < new Date()) {
+        showToast("⚠️ La fecha no puede estar en el pasado");
+        return;
+      }
+
+      tasks.push({ text, desc, date, priority: taskPriority.value, done: false });
+      taskInput.value = "";
+      taskDesc.value = "";
+      taskDate.value = "";
+      showToast("✅ Tarea agregada");
+      renderTasks();
+    }
+
+    function toggleDone(index) {
+      tasks[index].done = !tasks[index].done;
+      renderTasks();
+    }
+
+    function editTask(index) {
+      const newText = prompt("Editar título:", tasks[index].text);
+      const newDesc = prompt("Editar descripción:", tasks[index].desc);
+      if (newText) tasks[index].text = newText;
+      if (newDesc !== null) tasks[index].desc = newDesc;
+      renderTasks();
+    }
+
+    function deleteTask(index) {
+      tasks.splice(index, 1);
+      if (tasks.length === 0) localStorage.removeItem("gestor_tasks");
+      renderTasks();
+    }
+
+    function updateStats() {
+      totalCount.textContent = tasks.length;
+      pendingCount.textContent = tasks.filter(t => !t.done).length;
+      doneCount.textContent = tasks.filter(t => t.done).length;
+    }
+
+    function renderTasks() {
+      taskList.innerHTML = "";
+      let filteredTasks = tasks.filter(task => {
+        if (filter.value === "pendientes") return !task.done;
+        if (filter.value === "completadas") return task.done;
+        return true;
+      });
+
+      // Ordenar por prioridad y fecha
+      filteredTasks.sort((a, b) => {
+        const prioridadOrden = { alta: 1, media: 2, baja: 3 };
+        if (prioridadOrden[a.priority] !== prioridadOrden[b.priority]) {
+          return prioridadOrden[a.priority] - prioridadOrden[b.priority];
+        }
+        if (a.date && b.date) return new Date(a.date) - new Date(b.date);
+        return 0;
+      });
+
+      filteredTasks.forEach((task, index) => {
+        const li = document.createElement("li");
+        li.classList.add(`priority-${task.priority}`);
+
+        const title = document.createElement("strong");
+        title.textContent = task.text;
+        if (task.done) title.classList.add("done");
+
+        const desc = document.createElement("p");
+        desc.textContent = task.desc || "";
+
+        const small = document.createElement("small");
+        if (task.date) small.textContent = "📅 " + task.date;
+
+        const actions = document.createElement("div");
+        actions.className = "task-actions";
+
+        const btnDone = document.createElement("button");
+        btnDone.textContent = "✔ Completar";
+        btnDone.title = "Marcar como completada";
+        btnDone.onclick = () => toggleDone(index);
+
+        const btnEdit = document.createElement("button");
+        btnEdit.textContent = "✎ Editar";
+        btnEdit.title = "Editar tarea";
+        btnEdit.onclick = () => editTask(index);
+
+        const btnDelete = document.createElement("button");
+        btnDelete.textContent = "✖ Eliminar";
+        btnDelete.title = "Eliminar tarea";
+        btnDelete.onclick = () => deleteTask(index);
+
+        actions.appendChild(btnDone);
+        actions.appendChild(btnEdit);
+        actions.appendChild(btnDelete);
+
+        li.appendChild(title);
+        li.appendChild(desc);
+        li.appendChild(small);
+        li.appendChild(actions);
+
+        taskList.appendChild(li);
+      });
+
+      updateStats();
+      localStorage.setItem("gestor_tasks", JSON.stringify(tasks));
+    }
+
+    // --- Actualizaciones OTA (GitHub) ---
+    async function buscarActualizaciones() {
+      updateStatus.textContent = "Verificando en GitHub...";
+      document.getElementById("loader").style.display = "flex";
+
+      try {
+        const response = await fetch("https://raw.githubusercontent.com/kairox756/gestor_task/main/updates.json");
+        if (!response.ok) throw new Error("No se pudo conectar al servidor OTA");
+
+        const data = await response.json();
+        const versionActual = "1.0";
+
+        if (parseFloat(data.version) > parseFloat(versionActual)) {
+          updateStatus.innerHTML = `
+            ✅ Nueva versión disponible: v${data.version} (Build ${data.build})<br>
+            Cambios: ${data.changelog}<br>
+            <a href="${data.download_url}" target="_blank">📥 Descargar actualización</a>
+          `;
+        } else {
+          updateStatus.textContent = "Tu gestor está actualizado a la última versión.";
+        }
+      } catch (error) {
+        updateStatus.textContent = "❌ Error al verificar actualizaciones: " + error.message;
+      } finally {
+        document.getElementById("loader").style.display = "none";
+      }
+    }
+
+    addTaskBtn.addEventListener("click", addTask);
+    filter.addEventListener("change", renderTasks);
+
+    window.onload = () => {
+      renderTasks();
+      buscarActualizaciones();
+    };
+  </script>
+</body>
+</html>
